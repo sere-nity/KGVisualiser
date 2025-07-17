@@ -34,3 +34,6 @@ Thumbs.db
 dist/
 build/
 *.egg-info/
+
+# Next.js build output
+.next/      
