@@ -1,0 +1,36 @@
+# Node.js (frontend)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+frontend/node_modules/
+frontend/build/
+frontend/dist/
+frontend/.env
+
+# Python (backend)
+__pycache__/
+*.py[cod]
+*.so
+backend/venv/
+backend/env/
+backend/.venv/
+backend/.env
+backend/.env.*
+
+# General
+.DS_Store
+Thumbs.db
+.vscode/
+.env
+.env.*
+*.log
+
+# OS generated files
+*.swp
+*.swo
+
+# Build output
+dist/
+build/
+*.egg-info/
