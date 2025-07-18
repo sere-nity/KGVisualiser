@@ -1,13 +1,17 @@
 import csv
 import io
-from fastapi import FastAPI, UploadFile, File, Depends, HTTPException
+from fastapi import FastAPI, UploadFile, File, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from database import Base, engine, SessionLocal
 from models import CSVUpload, CSVRecord
 from contextlib import asynccontextmanager
 from sqlalchemy.orm import Session
 from datetime import datetime
+import openai
+import os
+from dotenv import load_dotenv
 
+load_dotenv()
 
 # ensure tables get created on startup
 @asynccontextmanager
@@ -72,4 +76,58 @@ def upload_csv(file: UploadFile = File(...), db: Session = Depends(get_db)):
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=f"CSV upload failed: {e}")
+
+@app.post("/chat")
+async def chat(request: Request, db: Session = Depends(get_db)):
+    try:
+        data = await request.json()
+        question = data.get("question")
+        upload_id = data.get("upload_id")
+        
+        if not question or not upload_id:
+            raise HTTPException(status_code=400, detail="Missing question or upload_id")
+        
+        # 1. Retrieve relevant rows from the database
+        records = db.query(CSVRecord).filter(CSVRecord.upload_id == upload_id).all()
+        
+        if not records:
+            raise HTTPException(status_code=404, detail="No data found for this upload_id")
+        
+        # 2. Build context from the data (limit to first 10 rows to avoid token limits)
+        context_rows = [str(r.row_data) for r in records[:10]]
+        context = "\n".join(context_rows)
+        
+        # 3. Build prompt for the LLM
+        prompt = f"""User question: {question}
+
+Relevant data from the uploaded CSV:
+{context}
+
+Please answer the user's question based on the data provided above. If the data doesn't contain enough information to answer the question, please say so.
+
+Answer:"""
+        
+        openai.api_key = os.getenv("OPENAI_API_KEY")
+        
+        if not openai.api_key:
+            raise HTTPException(status_code=500, detail="OpenAI API key not configured")
+        
+        response = openai.chat.completions.create(
+            model="gpt-4.1-nano",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=500
+        )
+        print("response", response) 
+        
+        answer = response.choices[0].message.content
+        
+        return {
+            "answer": answer,
+            "context_used": context_rows,
+            "total_rows": len(records)
+        }
+        
+    except Exception as e:
+        print("OpenAI error:", e)
+        raise HTTPException(status_code=500, detail=f"Chat failed: {str(e)}")
 
