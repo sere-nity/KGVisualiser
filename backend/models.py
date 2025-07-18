@@ -26,4 +26,13 @@ class PDFUpload(Base):
     content = Column(Text)  # Store full PDF text here
     created_at = Column(DateTime, default=datetime.now)
 
-
+class KnowledgeGraphTriplet(Base):
+    __tablename__ = "knowledge_graph_triplets"
+    id = Column(Integer, primary_key=True)
+    pdf_upload_id = Column(Integer, ForeignKey("pdf_uploads.id"))
+    subject = Column(Text)
+    relation = Column(Text)
+    object = Column(Text)
+    source_text = Column(Text)  # optional: context triplet came from 
+    # node_type = Column(String)  # optional: e.g., "entity", "concept", etc.
+    created_at = Column(DateTime, default=datetime.now)

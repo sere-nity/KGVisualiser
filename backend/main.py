@@ -6,13 +6,13 @@ import pdfplumber
 from fastapi import FastAPI, UploadFile, File, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from database import Base, engine, SessionLocal
-from models import CSVUpload, CSVRecord, PDFUpload
+from models import CSVUpload, CSVRecord, PDFUpload, KnowledgeGraphTriplet
 from contextlib import asynccontextmanager
 from sqlalchemy.orm import Session
 from datetime import datetime
 from dotenv import load_dotenv
-from utility.extraction import extract_text_from_pdf,  extract_context_from_csv_records
-from utility.llm import chat_with_llm, build_prompt
+from utility.extraction import extract_text_from_pdf, extract_triplets_from_pdf, extract_context_from_csv_records
+from utility.llm import chat_with_llm
 
 load_dotenv()
 
@@ -99,6 +99,10 @@ def upload_pdf(file: UploadFile = File(...), db: Session = Depends(get_db)):
         db.add(pdf_upload)
         db.commit()
         db.refresh(pdf_upload)
+
+        # 3. Extract triplets from the PDF
+        extract_triplets_from_pdf(pdf_upload, db)
+
         return {"message": "PDF uploaded successfully", "upload_id": pdf_upload.id}
     except Exception as e:
         db.rollback()
@@ -156,6 +160,23 @@ async def chat_csv(request: Request, db: Session = Depends(get_db)):
     except Exception as e:
         print("OpenAI error:", e)
         raise HTTPException(status_code=500, detail=f"Chat failed: {str(e)}")
+
+# Called after PDF uploaded 
+@app.get("/graph/{pdf_id}")
+def get_knowledge_graph(pdf_id: int, db: Session = Depends(get_db)):
+    triplets = db.query(KnowledgeGraphTriplet).filter(
+        KnowledgeGraphTriplet.pdf_upload_id == pdf_id
+    ).all()
+    # Return as a list of dicts for frontend
+    return [
+        {
+            "subject": t.subject,
+            "relation": t.relation,
+            "object": t.object,
+            "source_text": t.source_text,
+        }
+        for t in triplets
+    ]
 
 
 

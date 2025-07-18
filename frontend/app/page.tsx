@@ -1,8 +1,11 @@
 "use client";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import dynamic from "next/dynamic";
+import CytoscapeComponent from "react-cytoscapejs";
 
-const Plot = dynamic(() => import("react-plotly.js"), { ssr: false });
+type Triplet = { subject: string; relation: string; object: string; source_text?: string };
+
+type CytoscapeElement = { data: { id?: string; label?: string; source?: string; target?: string } };
 
 export default function Home() {
   // Legacy CSV upload (currently not in use)
@@ -22,6 +25,35 @@ export default function Home() {
   const [answer, setAnswer] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
   const [chatHistory, setChatHistory] = useState<Array<{ question: string, answer: string }>>([]);
+  const [graphElements, setGraphElements] = useState<CytoscapeElement[]>([]);
+
+  // Fetch knowledge graph triplets after PDF upload
+  useEffect(() => {
+    console.log("graphElements:", graphElements);
+    if (uploadId) {
+      fetch(`http://localhost:8000/graph/${uploadId}`)
+        .then(res => res.json())
+        .then((triplets: Triplet[]) => {
+          // Transform triplets to Cytoscape.js elements
+          const nodes: CytoscapeElement[] = [];
+          const edges: CytoscapeElement[] = [];
+          // nodeSet is used to avoid duplicate nodes (but visualisation handles this automatically anyway)
+          const nodeSet = new Set();
+          triplets.forEach(({ subject, relation: predicate, object }) => {
+            if (!nodeSet.has(subject)) {
+              nodes.push({ data: { id: subject, label: subject } });
+              nodeSet.add(subject);
+            }
+            if (!nodeSet.has(object)) {
+              nodes.push({ data: { id: object, label: object } });
+              nodeSet.add(object);
+            }
+            edges.push({ data: { source: subject, target: object, label: predicate } });
+          });
+          setGraphElements([...nodes, ...edges]);
+        });
+    }
+  }, [uploadId]);
 
   // Handle PDF upload and set uploadId for chat context
   const handlePdfUpload = async (e: React.FormEvent) => {
@@ -32,9 +64,9 @@ export default function Home() {
     formData.append("file", pdfInputRef.current.files[0]);
     try {
       const res = await fetch("http://localhost:8000/upload-pdf", {
-        method: "POST",
-        body: formData,
-      });
+      method: "POST",
+      body: formData,
+    });
       const data = await res.json();
       setPdfMessage(data.message || "PDF upload complete");
       setUploadId(data.upload_id); // Set uploadId from PDF upload
@@ -55,7 +87,7 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question, upload_id: uploadId }),
       });
-      const data = await res.json();
+    const data = await res.json();
       const newAnswer = data.answer;
       setAnswer(newAnswer);
       setChatHistory(prev => [...prev, { question, answer: newAnswer }]);
@@ -72,9 +104,48 @@ export default function Home() {
 
   return (
     <main className="flex h-screen bg-gray-50">
-      {/* Left: Knowledge Graph Placeholder */}
+      {/* Left: Knowledge Graph Visualization */}
       <div className="flex-1 flex items-center justify-center bg-gray-100 border-r-2 border-gray-200">
-        {/* Future: Knowledge graph/mindmap visualization goes here */}
+        {uploadId && graphElements.length > 0 ? (
+          <CytoscapeComponent
+            elements={graphElements}
+            style={{ width: "600px", height: "600px", background: "#fff" }}
+            layout={{ name: "cose" }}
+            stylesheet={[
+              {
+                selector: 'node',
+                style: {
+                  'label': 'data(label)',
+                  'background-color': '#2563eb',
+                  'color': '#222',
+                  'text-valign': 'center',
+                  'text-halign': 'center',
+                  'font-size': 16,
+                  'width': 40,
+                  'height': 40,
+                }
+              },
+              {
+                selector: 'edge',
+                style: {
+                  'label': 'data(label)',
+                  'curve-style': 'bezier',
+                  'target-arrow-shape': 'triangle',
+                  'width': 3,
+                  'line-color': '#888',
+                  'target-arrow-color': '#888',
+                  'font-size': 14,
+                  'color': '#222',
+                  'text-background-color': '#fff',
+                  'text-background-opacity': 0,
+                  'text-background-padding': 2,
+                }
+              }
+            ]}
+          />
+        ) : (
+          <span className="text-gray-400 text-lg">Upload a PDF to see the knowledge graph.</span>
+        )}
       </div>
 
       {/* Right: Chatbot Panel */}
@@ -97,7 +168,7 @@ export default function Home() {
             >
               {pdfLoading ? "Uploading..." : "Upload PDF"}
             </button>
-          </form>
+      </form>
           {pdfMessage && (
             <div className="mt-2 p-2 bg-purple-50 border border-purple-200 rounded-lg">
               <p className="text-sm text-purple-700">{pdfMessage}</p>
