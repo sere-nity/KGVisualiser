@@ -104,48 +104,54 @@ export default function Home() {
 
   return (
     <main className="flex h-screen bg-gray-50">
-      {/* Left: Knowledge Graph Visualization */}
-      <div className="flex-1 flex items-center justify-center bg-gray-100 border-r-2 border-gray-200">
-        {uploadId && graphElements.length > 0 ? (
-          <CytoscapeComponent
-            elements={graphElements}
-            style={{ width: "600px", height: "600px", background: "#fff" }}
-            layout={{ name: "cose" }}
-            stylesheet={[
-              {
-                selector: 'node',
-                style: {
-                  'label': 'data(label)',
-                  'background-color': '#2563eb',
-                  'color': '#222',
-                  'text-valign': 'center',
-                  'text-halign': 'center',
-                  'font-size': 16,
-                  'width': 40,
-                  'height': 40,
+      {/* Left: Knowledge Graph Visualization + RAG Statistics */}
+      <div className="flex-1 flex flex-col bg-gray-100 border-r-2 border-gray-200 h-full">
+        <div className="flex-1 flex items-center justify-center">
+          {uploadId && graphElements.length > 0 ? (
+            <CytoscapeComponent
+              elements={graphElements}
+              style={{ width: "95%", height: "90%", background: "#fff" }}
+              layout={{ name: "cose" }}
+              stylesheet={[
+                {
+                  selector: 'node',
+                  style: {
+                    'label': 'data(label)',
+                    'background-color': '#2563eb',
+                    'color': '#222',
+                    'text-valign': 'center',
+                    'text-halign': 'center',
+                    'font-size': 16,
+                    'width': 40,
+                    'height': 40,
+                  }
+                },
+                {
+                  selector: 'edge',
+                  style: {
+                    'label': 'data(label)',
+                    'curve-style': 'bezier',
+                    'target-arrow-shape': 'triangle',
+                    'width': 3,
+                    'line-color': '#888',
+                    'target-arrow-color': '#888',
+                    'font-size': 14,
+                    'color': '#222',
+                    'text-background-color': '#fff',
+                    'text-background-opacity': 0,
+                    'text-background-padding': 2,
+                  }
                 }
-              },
-              {
-                selector: 'edge',
-                style: {
-                  'label': 'data(label)',
-                  'curve-style': 'bezier',
-                  'target-arrow-shape': 'triangle',
-                  'width': 3,
-                  'line-color': '#888',
-                  'target-arrow-color': '#888',
-                  'font-size': 14,
-                  'color': '#222',
-                  'text-background-color': '#fff',
-                  'text-background-opacity': 0,
-                  'text-background-padding': 2,
-                }
-              }
-            ]}
-          />
-        ) : (
-          <span className="text-gray-400 text-lg">Upload a PDF to see the knowledge graph.</span>
-        )}
+              ]}
+            />
+          ) : (
+            <span className="text-gray-400 text-lg">Upload a PDF to see the knowledge graph.</span>
+          )}
+        </div>
+        {/* RAG Statistics Placeholder */}
+        <div className="w-full bg-gray-200 p-6 flex items-center justify-center min-h-[200px] border-t border-gray-300">
+          <span className="text-3xl font-bold text-gray-700 tracking-wide">RAG STATISTICS</span>
+        </div>
       </div>
 
       {/* Right: Chatbot Panel */}
