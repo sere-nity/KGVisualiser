@@ -1,15 +1,18 @@
 import csv
 import io
+import openai
+import os
+import pdfplumber
 from fastapi import FastAPI, UploadFile, File, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from database import Base, engine, SessionLocal
-from models import CSVUpload, CSVRecord
+from models import CSVUpload, CSVRecord, PDFUpload
 from contextlib import asynccontextmanager
 from sqlalchemy.orm import Session
 from datetime import datetime
-import openai
-import os
 from dotenv import load_dotenv
+
+
 
 load_dotenv()
 
@@ -37,7 +40,7 @@ def get_db():
     finally:
         db.close()
 
-# endpoints - uploading CSV, querying?, AI chat?? 
+# ENDPOINTS --------------------------------------------------------------------
 
 @app.get("/")
 def read_root():
@@ -77,7 +80,87 @@ def upload_csv(file: UploadFile = File(...), db: Session = Depends(get_db)):
         db.rollback()
         raise HTTPException(status_code=400, detail=f"CSV upload failed: {e}")
 
-@app.post("/chat")
+
+# PDF ENDPOINT ----------------------------------------------------------------
+
+@app.post("/upload-pdf")
+def upload_pdf(file: UploadFile = File(...), db: Session = Depends(get_db)):
+    try:
+        # extract text from PDF 
+        with pdfplumber.open(io.BytesIO(file.file.read())) as pdf:
+            all_text = "\n\n".join(
+                page.extract_text() or "" for page in pdf.pages
+            ).strip()
+        
+        if not all_text.strip():
+            raise HTTPException(status_code=400, detail="No text found in the PDF")
+        
+        # save content + upload metadata to PDFUpload table
+        pdf_upload = PDFUpload(
+            filename=file.filename,
+            content=all_text,
+            created_at=datetime.now()
+        )
+        db.add(pdf_upload)
+        db.commit()
+        db.refresh(pdf_upload)
+
+        return {"message": "PDF uploaded successfully", "upload_id": pdf_upload.id}
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"PDF upload failed: {e}\n")
+
+@app.post("/chat-pdf")
+async def chat_pdf(request: Request, db: Session = Depends(get_db)):
+    try:
+        data = await request.json()
+        question = data.get("question")
+        upload_id = data.get("upload_id")
+
+        if not question or not upload_id:
+            raise HTTPException(status_code=400, detail="Missing question or upload_id")
+
+        # Retrieve the PDF upload content
+        pdf_upload = db.query(PDFUpload).filter(PDFUpload.id == upload_id).first()
+        if not pdf_upload:
+            raise HTTPException(status_code=404, detail="No PDF found for this upload_id")
+
+        # Use the extracted text as context (limit to first 2000 characters for prompt size)
+        context = pdf_upload.content[:2000]
+
+        prompt = f"""User question: {question}
+
+Relevant data from the uploaded PDF:
+{context}
+
+Answer:"""
+
+        openai.api_key = os.getenv("OPENAI_API_KEY")
+        if not openai.api_key:
+            raise HTTPException(status_code=500, detail="OpenAI API key not configured")
+
+        response = openai.chat.completions.create(
+            model="gpt-4.1-nano",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=500
+        )
+        print("response", response)
+
+        answer = response.choices[0].message.content
+
+        return {
+            "answer": answer,
+            "context_used": context,
+            "upload_id": upload_id
+        }
+
+    except Exception as e:
+        print("OpenAI error:", e)
+        raise HTTPException(status_code=500, detail=f"Chat failed: {str(e)}")
+
+# OLD CSV ENDPOINT ------------------------------------------------------------
+@app.post("/chat-csv")
 async def chat(request: Request, db: Session = Depends(get_db)):
     try:
         data = await request.json()
@@ -130,4 +213,7 @@ Answer:"""
     except Exception as e:
         print("OpenAI error:", e)
         raise HTTPException(status_code=500, detail=f"Chat failed: {str(e)}")
+
+
+
 
