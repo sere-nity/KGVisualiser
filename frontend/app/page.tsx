@@ -2,10 +2,13 @@
 import { useRef, useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import CytoscapeComponent from "react-cytoscapejs";
+import cytoscape from "cytoscape";
+import coseBilkent from "cytoscape-cose-bilkent";
+cytoscape.use(coseBilkent);
 
 type Triplet = { subject: string; relation: string; object: string; source_text?: string };
 
-type CytoscapeElement = { data: { id?: string; label?: string; source?: string; target?: string } };
+type CytoscapeElement = { data: { id?: string; label?: string; source?: string; target?: string; cluster_id?: number } };
 
 export default function Home() {
   // Legacy CSV upload (currently not in use)
@@ -34,23 +37,29 @@ export default function Home() {
       fetch(`http://localhost:8000/graph/${uploadId}`)
         .then(res => res.json())
         .then((triplets: Triplet[]) => {
-          // Transform triplets to Cytoscape.js elements
-          const nodes: CytoscapeElement[] = [];
-          const edges: CytoscapeElement[] = [];
-          // nodeSet is used to avoid duplicate nodes (but visualisation handles this automatically anyway)
-          const nodeSet = new Set();
-          triplets.forEach(({ subject, relation: predicate, object }) => {
-            if (!nodeSet.has(subject)) {
-              nodes.push({ data: { id: subject, label: subject } });
-              nodeSet.add(subject);
-            }
-            if (!nodeSet.has(object)) {
-              nodes.push({ data: { id: object, label: object } });
-              nodeSet.add(object);
-            }
-            edges.push({ data: { source: subject, target: object, label: predicate } });
-          });
-          setGraphElements([...nodes, ...edges]);
+          // get node cluster ids
+          fetch(`http://localhost:8000/graph/nodes/${uploadId}`)
+            .then(res => res.json())
+            // id of the node is the node name 
+            .then((nodeClusterIds: {node_id: string, cluster_id: number}[]) => {
+                const clusterMap = Object.fromEntries(nodeClusterIds.map(n => [n.node_id, n.cluster_id]));
+                const cytoscapeNodes: CytoscapeElement[] = [];
+                const edges: CytoscapeElement[] = [];
+                const nodeSet = new Set();
+                triplets.forEach(({ subject, relation: predicate, object }) => {
+                  // nodeSet is used to avoid duplicate nodes (but visualisation handles this automatically anyway)
+                  if (!nodeSet.has(subject)) {
+                    cytoscapeNodes.push({ data: { id: subject, label: subject, cluster_id: clusterMap[subject] ?? 0 } });
+                    nodeSet.add(subject);
+                  }
+                  if (!nodeSet.has(object)) {
+                    cytoscapeNodes.push({ data: { id: object, label: object, cluster_id: clusterMap[object] ?? 0 } });
+                    nodeSet.add(object);
+                  }
+                  edges.push({ data: { source: subject, target: object, label: predicate } });
+                });
+                setGraphElements([...cytoscapeNodes, ...edges]);
+            }); 
         });
     }
   }, [uploadId]);
@@ -102,6 +111,18 @@ export default function Home() {
     }
   };
 
+  const clusterColors = [
+    "#2563eb", // blue
+    "#eab308", // yellow
+    "#10b981", // green
+    "#ef4444", // red
+    "#a21caf", // purple
+    "#f59e42", // orange
+    "#14b8a6", // teal
+    "#f472b6", // pink
+    // ...add more as needed
+  ];
+
   return (
     <main className="flex h-screen bg-gray-50">
       {/* Left: Knowledge Graph Visualization + RAG Statistics */}
@@ -111,13 +132,20 @@ export default function Home() {
             <CytoscapeComponent
               elements={graphElements}
               style={{ width: "95%", height: "90%", background: "#fff" }}
-              layout={{ name: "cose" }}
+              layout={{
+                name: "cose-bilkent",
+                nodeClusterAttribute: "cluster_id"
+              }}
               stylesheet={[
+                // One style per cluster
+                ...clusterColors.map((color, idx) => ({
+                  selector: `node[cluster_id = ${idx}]`,
+                  style: { 'background-color': color }
+                })),
                 {
                   selector: 'node',
                   style: {
                     'label': 'data(label)',
-                    'background-color': '#2563eb',
                     'color': '#222',
                     'text-valign': 'center',
                     'text-halign': 'center',
@@ -154,6 +182,10 @@ export default function Home() {
         </div>
       </div>
 
+
+
+
+            
       {/* Right: Chatbot Panel */}
       <div className="w-[600px] flex flex-col h-full bg-white shadow-xl">
         {/* PDF Upload at the top */}

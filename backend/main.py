@@ -6,7 +6,7 @@ import pdfplumber
 from fastapi import FastAPI, UploadFile, File, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from database import Base, engine, SessionLocal
-from models import CSVUpload, CSVRecord, PDFUpload, KnowledgeGraphTriplet
+from models import CSVUpload, CSVRecord, PDFUpload, KnowledgeGraphTriplet, NodeEmbedding
 from contextlib import asynccontextmanager
 from sqlalchemy.orm import Session
 from datetime import datetime
@@ -161,6 +161,7 @@ async def chat_csv(request: Request, db: Session = Depends(get_db)):
         print("OpenAI error:", e)
         raise HTTPException(status_code=500, detail=f"Chat failed: {str(e)}")
 
+# ENDPOINT FOR GETTING RELATIONSHIP DATA ----------------------------------
 # Called after PDF uploaded 
 @app.get("/graph/{pdf_id}")
 def get_knowledge_graph(pdf_id: int, db: Session = Depends(get_db)):
@@ -178,6 +179,16 @@ def get_knowledge_graph(pdf_id: int, db: Session = Depends(get_db)):
         for t in triplets
     ]
 
-
-
-
+# ENDPOINT FOR GETTING NODE CLUSER ID DATA ----------------------------------
+@app.get("/graph/nodes/{pdf_id}")
+def get_node_embeddings(pdf_id: int, db: Session = Depends(get_db)):
+    node_embeddings = db.query(NodeEmbedding).filter(
+        NodeEmbedding.pdf_upload_id == pdf_id
+    ).all()
+    return [
+        {
+            "node_id": ne.node_id,
+            "cluster_id": ne.cluster_id,
+        }
+        for ne in node_embeddings
+    ]

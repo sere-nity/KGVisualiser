@@ -26,6 +26,7 @@ class PDFUpload(Base):
     content = Column(Text)  # Store full PDF text here
     created_at = Column(DateTime, default=datetime.now)
 
+# Stores data abt the RELATIONSHIPS in the knowledge graph. 
 class KnowledgeGraphTriplet(Base):
     __tablename__ = "knowledge_graph_triplets"
     id = Column(Integer, primary_key=True)
@@ -35,4 +36,14 @@ class KnowledgeGraphTriplet(Base):
     object = Column(Text)
     source_text = Column(Text)  # optional: context triplet came from 
     # node_type = Column(String)  # optional: e.g., "entity", "concept", etc.
+    created_at = Column(DateTime, default=datetime.now)
+
+# Stores data abt the NODES in the knowledge graph. 
+class NodeEmbedding(Base):
+    __tablename__ = "node_embeddings"
+    id = Column(Integer, primary_key=True)
+    pdf_upload_id = Column(Integer, ForeignKey("pdf_uploads.id"))
+    node_id = Column(String)
+    embedding = Column(JSONB)  # Store the embedding vector as JSON
+    cluster_id = Column(Integer)
     created_at = Column(DateTime, default=datetime.now)
