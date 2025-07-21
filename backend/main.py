@@ -11,7 +11,7 @@ from contextlib import asynccontextmanager
 from sqlalchemy.orm import Session
 from datetime import datetime
 from dotenv import load_dotenv
-from utility.extraction import extract_text_from_pdf, extract_triplets_from_pdf, extract_context_from_csv_records
+from utility.extraction import extract_text_from_pdf, process_pdf_to_kg, extract_context_from_csv_records
 from utility.llm import chat_with_llm
 
 load_dotenv()
@@ -101,7 +101,7 @@ def upload_pdf(file: UploadFile = File(...), db: Session = Depends(get_db)):
         db.refresh(pdf_upload)
 
         # 3. Extract triplets from the PDF
-        extract_triplets_from_pdf(pdf_upload, db)
+        process_pdf_to_kg(pdf_upload, db)
 
         return {"message": "PDF uploaded successfully", "upload_id": pdf_upload.id}
     except Exception as e:
