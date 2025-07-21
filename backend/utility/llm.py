@@ -9,6 +9,7 @@ def build_prompt(question, context, context_type="PDF"):
 def chat_with_llm(question, context, context_type, model="gpt-4.1-nano"):
     """
     Shared utility to build prompt and call OpenAI LLM for both PDF and CSV chat endpoints.
+    Returns a dict with 'answer' and 'usage' (if available).
     """
     prompt = build_prompt(question, context, context_type=context_type)
     openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -21,4 +22,8 @@ def chat_with_llm(question, context, context_type, model="gpt-4.1-nano"):
     )
     print("response", response)
     answer = response.choices[0].message.content
-    return answer
+    usage = getattr(response, 'usage', None)
+    if usage is None and hasattr(response, 'model_dump'):
+        # For some OpenAI client versions, usage is in model_dump
+        usage = response.model_dump().get('usage')
+    return {"answer": answer, "usage": usage}

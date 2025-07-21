@@ -43,6 +43,7 @@ export default function Home() {
   const [chatLoading, setChatLoading] = useState(false);
   const [chatHistory, setChatHistory] = useState<Array<{ question: string, answer: string }>>([]);
   const [graphElements, setGraphElements] = useState<CytoscapeElement[]>([]);
+  const [ragStats, setRagStats] = useState<{ queryTime?: number, tokenUsage?: any }>({});
 
   // Fetch knowledge graph triplets after PDF upload
   useEffect(() => {
@@ -110,16 +111,18 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question, upload_id: uploadId }),
       });
-    const data = await res.json();
+      const data = await res.json();
       const newAnswer = data.answer;
       setAnswer(newAnswer);
       setChatHistory(prev => [...prev, { question, answer: newAnswer }]);
       setQuestion("");
+      setRagStats({ queryTime: data.query_time, tokenUsage: data.token_usage });
     } catch (error) {
       const errorMessage = "Failed to get answer. Please try again.";
       setAnswer(errorMessage);
       setChatHistory(prev => [...prev, { question, answer: errorMessage }]);
       setQuestion("");
+      setRagStats({});
     } finally {
       setChatLoading(false);
     }
@@ -198,9 +201,19 @@ export default function Home() {
             <span className="text-gray-400 text-lg">Upload a PDF to see the knowledge graph.</span>
           )}
         </div>
-        {/* RAG Statistics Placeholder */}
-        <div className="w-full bg-gray-200 p-6 flex items-center justify-center min-h-[200px] border-t border-gray-300">
-          <span className="text-3xl font-bold text-gray-700 tracking-wide">RAG STATISTICS</span>
+        {/* RAG Statistics Section */}
+        <div className="w-full bg-gray-200 p-6 flex flex-col items-center justify-center min-h-[200px] border-t border-gray-300">
+          {ragStats.queryTime !== undefined ? (
+            <>
+              <span className="text-3xl font-bold text-gray-700 tracking-wide mb-2">Query Statistics</span>
+              <div className="text-lg text-gray-800">Query Time: {ragStats.queryTime.toFixed(2)}s</div>
+              {ragStats.tokenUsage && ragStats.tokenUsage.total_tokens !== undefined && (
+                <div className="text-lg text-gray-800">Tokens Used: {ragStats.tokenUsage.total_tokens}</div>
+              )}
+            </>
+          ) : (
+            <span className="text-lg text-gray-500">No query made yet.</span>
+          )}
         </div>
       </div>
 
@@ -229,6 +242,15 @@ export default function Home() {
               {pdfLoading ? "Uploading..." : "Upload PDF"}
             </button>
       </form>
+        {pdfLoading && (
+          <div className="flex items-center gap-2 mt-2">
+            <svg className="animate-spin h-6 w-6 text-purple-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+            </svg>
+            <span className="text-purple-700">Processing PDF, please wait...</span>
+          </div>
+        )}
           {pdfMessage && (
             <div className="mt-2 p-2 bg-purple-50 border border-purple-200 rounded-lg">
               <p className="text-sm text-purple-700">{pdfMessage}</p>

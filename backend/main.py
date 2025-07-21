@@ -13,6 +13,14 @@ from datetime import datetime
 from dotenv import load_dotenv
 from utility.extraction import extract_text_from_pdf, process_pdf_to_kg, extract_context_from_csv_records
 from utility.llm import chat_with_llm
+from llama_index.core.settings import Settings
+from llama_index.core.indices.knowledge_graph import KnowledgeGraphIndex
+from llama_index.core import Document
+from utility.extraction import custom_prompt
+from llama_index.core.query_engine import KnowledgeGraphQueryEngine
+from llama_index.core import StorageContext
+from llama_index.core.graph_stores.simple import SimpleGraphStore
+import time
 
 load_dotenv()
 
@@ -113,6 +121,7 @@ def upload_pdf(file: UploadFile = File(...), db: Session = Depends(get_db)):
 @app.post("/chat-pdf")
 async def chat_pdf(request: Request, db: Session = Depends(get_db)):
     try:
+        start_time = time.time()
         data = await request.json()
         question = data.get("question")
         upload_id = data.get("upload_id")
@@ -125,11 +134,20 @@ async def chat_pdf(request: Request, db: Session = Depends(get_db)):
         # 2. Use the extracted text as context (limit to first 2000 characters for prompt size)
         context = pdf_upload.content[:2000]
         # 3. Call shared LLM chat utility
-        answer = chat_with_llm(question, context, context_type="PDF")
+        result = chat_with_llm(question, context, context_type="PDF")
+        if isinstance(result, dict):
+            answer = result.get("answer", "")
+            token_usage = result.get("usage")
+        else:
+            answer = str(result)
+            token_usage = None
+        elapsed = time.time() - start_time
         return {
             "answer": answer,
             "context_used": context,
-            "upload_id": upload_id
+            "upload_id": upload_id,
+            "query_time": elapsed,
+            "token_usage": token_usage
         }
     except Exception as e:
         print("OpenAI error:", e)
@@ -192,3 +210,7 @@ def get_node_embeddings(pdf_id: int, db: Session = Depends(get_db)):
         }
         for ne in node_embeddings
     ]
+
+
+
+
