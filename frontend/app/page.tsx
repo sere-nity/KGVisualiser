@@ -4,6 +4,20 @@ import dynamic from "next/dynamic";
 import CytoscapeComponent from "react-cytoscapejs";
 import cytoscape from "cytoscape";
 import coseBilkent from "cytoscape-cose-bilkent";
+import {
+  NODE_REPULSION,
+  IDEAL_EDGE_LENGTH,
+  EDGE_ELASTICITY,
+  GRAPH_GRAVITY,
+  LAYOUT_NUM_ITER,
+  GRAPH_PADDING,
+  TILING_PADDING_VERTICAL,
+  TILING_PADDING_HORIZONTAL,
+  GRAVITY_RANGE_COMPOUND,
+  GRAVITY_COMPOUND,
+  INITIAL_ENERGY_ON_INCREMENTAL,
+  CLUSTER_COLORS
+} from "./config";
 cytoscape.use(coseBilkent);
 
 type Triplet = { subject: string; relation: string; object: string; source_text?: string };
@@ -111,18 +125,6 @@ export default function Home() {
     }
   };
 
-  const clusterColors = [
-    "#2563eb", // blue
-    "#eab308", // yellow
-    "#10b981", // green
-    "#ef4444", // red
-    "#a21caf", // purple
-    "#f59e42", // orange
-    "#14b8a6", // teal
-    "#f472b6", // pink
-    // ...add more as needed
-  ];
-
   return (
     <main className="flex h-screen bg-gray-50">
       {/* Left: Knowledge Graph Visualization + RAG Statistics */}
@@ -134,11 +136,26 @@ export default function Home() {
               style={{ width: "95%", height: "90%", background: "#fff" }}
               layout={{
                 name: "cose-bilkent",
-                nodeClusterAttribute: "cluster_id"
+                nodeClusterAttribute: "cluster_id",
+                animate: true,
+                randomize: true,
+                fit: true,
+                padding: GRAPH_PADDING,
+                nodeRepulsion: NODE_REPULSION,
+                idealEdgeLength: IDEAL_EDGE_LENGTH,
+                edgeElasticity: EDGE_ELASTICITY,
+                gravity: GRAPH_GRAVITY,
+                numIter: LAYOUT_NUM_ITER,
+                tile: true,
+                tilingPaddingVertical: TILING_PADDING_VERTICAL,
+                tilingPaddingHorizontal: TILING_PADDING_HORIZONTAL,
+                gravityRangeCompound: GRAVITY_RANGE_COMPOUND,
+                gravityCompound: GRAVITY_COMPOUND,
+                initialEnergyOnIncremental: INITIAL_ENERGY_ON_INCREMENTAL,
               }}
               stylesheet={[
                 // One style per cluster
-                ...clusterColors.map((color, idx) => ({
+                ...CLUSTER_COLORS.map((color, idx) => ({
                   selector: `node[cluster_id = ${idx}]`,
                   style: { 'background-color': color }
                 })),
@@ -166,8 +183,13 @@ export default function Home() {
                     'font-size': 14,
                     'color': '#222',
                     'text-background-color': '#fff',
-                    'text-background-opacity': 0,
-                    'text-background-padding': 2,
+                    'text-background-opacity': 1,
+                    'text-background-padding': 6,
+                    'text-border-color': '#fff',
+                    'text-border-width': 1,
+                    'text-border-opacity': 1,
+                    'text-background-shape': 'roundrectangle',
+                    'text-margin-y': -8,
                   }
                 }
               ]}

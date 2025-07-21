@@ -57,8 +57,7 @@ custom_prompt = PromptTemplate(
     prompt_type=PromptType.KNOWLEDGE_TRIPLET_EXTRACT
 )
 
-SIMILARITY_THRESHOLD = 0.8
-MAX_PAIRS = 1000
+from config import SIMILARITY_THRESHOLD, MAX_PAIRS
 
 def process_pdf_to_kg(pdf_upload: PDFUpload, db: Session):
     """
