@@ -1,6 +1,6 @@
 # AI Dashboard: Knowledge Graph Visualizer
 
-This project is a full-stack application for extracting, analyzing, and visualizing knowledge graphs from PDF and CSV files. It leverages AI and graph technologies to help users explore relationships within their documents.
+This project is a full-stack application for extracting, visualizing knowledge graphs from PDF. It leverages AI and graph technologies to help users explore relationships within their documents.
 
 ---
 
@@ -17,7 +17,7 @@ This project is a full-stack application for extracting, analyzing, and visualiz
 
 - **Frontend:** Next.js (React, TypeScript, Cytoscape.js)
 - **Backend:** FastAPI (Python)
-- **Database:** SQLAlchemy (default: SQLite, configurable)
+- **Database:** SQLAlchemy (default: PostgreSQL)
 - **AI/LLM:** OpenAI API (configurable via environment variables)
 
 ---
