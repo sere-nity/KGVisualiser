@@ -68,7 +68,7 @@ npm run dev                      # Starts Next.js on http://localhost:3000
   - `OPENAI_API_KEY=your_openai_key`
   - `DATABASE_URL=sqlite:///./test.db` (or your preferred DB)
 
-- **Frontend:** (if needed, e.g., for API URLs)
+- **Frontend:** (Set this to the URL of your backend API)
   - `NEXT_PUBLIC_API_URL=http://localhost:8000`
 
 ---
