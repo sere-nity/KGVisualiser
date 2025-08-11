@@ -4,7 +4,7 @@ sqlalchemy
 alembic
 python-multipart
 python-dotenv
-openai
+openai>=1.12.0
 pdfplumber
 llama-index
 llama-index-llms-openai
