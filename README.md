@@ -1,4 +1,4 @@
-# AI Dashboard: Knowledge Graph Visualizer
+# Knowledge Graph Visualizer
 
 This project is a full-stack application for extracting, visualizing knowledge graphs from PDF. It leverages AI and graph technologies to help users explore relationships within their documents.
 
@@ -32,7 +32,7 @@ This project is a full-stack application for extracting, visualizing knowledge g
 
 ---
 
-## Setup Instructions
+## LOCAL Setup Instructions
 
 ### 1. Clone the Repository
 
