@@ -1,4 +1,4 @@
-# AI Dashboard: Knowledge Graph Visualizer
+# Knowledge Graph Visualizer
 
 This project is a full-stack application for extracting, visualizing knowledge graphs from PDF. It leverages AI and graph technologies to help users explore relationships within their documents.
 
@@ -32,7 +32,7 @@ This project is a full-stack application for extracting, visualizing knowledge g
 
 ---
 
-## Setup Instructions
+## LOCAL Setup Instructions
 
 ### 1. Clone the Repository
 
@@ -68,7 +68,7 @@ npm run dev                      # Starts Next.js on http://localhost:3000
   - `OPENAI_API_KEY=your_openai_key`
   - `DATABASE_URL=sqlite:///./test.db` (or your preferred DB)
 
-- **Frontend:** (if needed, e.g., for API URLs)
+- **Frontend:** (Set this to the URL of your backend API)
   - `NEXT_PUBLIC_API_URL=http://localhost:8000`
 
 ---
